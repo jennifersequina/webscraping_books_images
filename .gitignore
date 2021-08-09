@@ -1,0 +1,11 @@
+venv/
+credentials/
+credentials/sa.json
+.DS_Store
+.idea/
+__pycache__/
+config/
+config/config.yaml
+.gitignore/
+chromedriver
+chromedriver_mac64.zip
