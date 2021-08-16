@@ -18,7 +18,7 @@ import time
 
 query = f"""
             SELECT title
-            FROM `{project_id}.dev.cleaned_books`
+            FROM `{project_id}.dev.books_data`
             """
 rows = client.query(query=query).result()
 title_list = list()
@@ -28,7 +28,7 @@ for r in rows:
 driver = webdriver.Chrome(ChromeDriverManager().install())
 
 books_info = list()
-for title in title_list[:5]:
+for title in title_list:
     title_dict = dict()
     if isinstance(title, list):
         title_dict['title'] = title[0]
@@ -74,3 +74,7 @@ for title in title_list[:5]:
 book_info_df = pd.DataFrame(books_info)
 book_info_df.to_csv('book_info.csv', index=False)
 
+
+# # importing csv file to bigquery
+# df = pd.read_csv('book_info.csv')
+# df.to_gbq('dev.books_info', credentials=credentials, project_id=project_id)
