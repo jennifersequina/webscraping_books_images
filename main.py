@@ -1,12 +1,6 @@
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from yaml_reader import read_config
-config = read_config('config/config.yaml')
-
-project_id = config['project_id']
-credentials = service_account.Credentials.from_service_account_file(config['credentials_path'])
-client = bigquery.Client(credentials=credentials, project=project_id)
-
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -14,7 +8,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from webdriver_manager.chrome import ChromeDriverManager
-import time
+
+config = read_config('config/config.yaml')
+
+project_id = config['project_id']
+credentials = service_account.Credentials.from_service_account_file(config['credentials_path'])
+client = bigquery.Client(credentials=credentials, project=project_id)
 
 query = f"""
             SELECT title
@@ -69,11 +68,9 @@ for title in title_list:
         books_info.append(title_dict)
     finally:
         None
-        # driver.quit()
 
 book_info_df = pd.DataFrame(books_info)
 book_info_df.to_csv('book_info.csv', index=False)
-
 
 # # importing csv file to bigquery
 # df = pd.read_csv('book_info.csv')
