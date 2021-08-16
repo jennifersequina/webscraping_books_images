@@ -1,35 +1,76 @@
+from google.cloud import bigquery
+from google.oauth2 import service_account
+from yaml_reader import read_config
+config = read_config('config/config.yaml')
 
+project_id = config['project_id']
+credentials = service_account.Credentials.from_service_account_file(config['credentials_path'])
+client = bigquery.Client(credentials=credentials, project=project_id)
+
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
 import time
 
+query = f"""
+            SELECT title
+            FROM `{project_id}.dev.cleaned_books`
+            """
+rows = client.query(query=query).result()
+title_list = list()
+for r in rows:
+    title_list.append(list(r.values()))
+
 driver = webdriver.Chrome(ChromeDriverManager().install())
-driver.get("https://www.amazon.com")
 
-search = driver.find_element_by_id('twotabsearchtextbox')
-search.send_keys('Harry Potter and the Cursed Child, Parts 1 & 2, Special Rehearsal Edition Script')
-search.send_keys(Keys.RETURN)
+books_info = list()
+for title in title_list[:5]:
+    title_dict = dict()
+    if isinstance(title, list):
+        title_dict['title'] = title[0]
+    else:
+        title_dict['title'] = title
 
-try:
-    result = WebDriverWait(driver, 10).until(
-        ec.presence_of_element_located((By.ID, "search"))
-    )
+    driver.get("https://www.amazon.com")
+    dropdown = driver.find_element_by_xpath("//option[@value='search-alias=stripbooks-intl-ship']")
+    dropdown.click()
+    search = driver.find_element_by_id('twotabsearchtextbox')
+    search.send_keys(title)
+    search.send_keys(Keys.RETURN)
 
-    books = result.find_elements_by_class_name("sg-col-inner")
-    for book in books:
-        # print(book.text)
-        links = book.find_elements_by_xpath("//a[@class='a-link-normal a-text-normal']")
-        # print(links)
-        for link in links:
-            print(link.get_attribute("href"))
+    try:
+        result = WebDriverWait(driver, 10).until(
+            ec.presence_of_element_located((By.ID, "search"))
+        )
+        books = result.find_elements_by_class_name("sg-col-inner")
 
-finally:
-    None
-    # driver.quit()
+        for index, book in enumerate(books):
+            if index == 0:
+                links = book.find_elements_by_xpath("//a[@class='a-link-normal a-text-normal']")
+                for link_index, link in enumerate(links):
+                    if link_index == 0:
+                        book_link = link.get_attribute("href")
+                        print(book_link)
+                        title_dict['book_link'] = book_link
+                        break
 
-time.sleep(10)
+                images = book.find_elements_by_xpath("//img[@class='s-image']")
+                for img_index, image in enumerate(images):
+                    if img_index == 0:
+                        book_image = image.get_attribute("src")
+                        print(book_image)
+                        title_dict['book_image'] = book_image
+                        break
+                break
+        books_info.append(title_dict)
+    finally:
+        None
+        # driver.quit()
+
+book_info_df = pd.DataFrame(books_info)
+book_info_df.to_csv('book_info.csv', index=False)
+

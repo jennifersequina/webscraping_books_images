@@ -7,15 +7,16 @@ project_id = config['project_id']
 credentials = service_account.Credentials.from_service_account_file(config['credentials_path'])
 client = bigquery.Client(credentials=credentials, project=project_id)
 
-query = f"""
-        SELECT title
-        FROM `{project_id}.dev.cleaned_books`
-        """
-# print(query)
-rows = client.query(query=query).result()
-title_list = list()
-for r in rows:
-    title_list.append(list(r.values()))
-print(title_list)
+def titles (self) -> list(str):
+    query = f"""
+            SELECT title
+            FROM `{project_id}.dev.cleaned_books`
+            """
+    # print(query)
+    rows = client.query(query=query).result()
+    title_list = list()
+    for r in rows:
+        title_list.append(list(r.values()))
+    print(title_list)
 
 
